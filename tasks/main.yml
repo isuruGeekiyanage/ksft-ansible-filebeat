@@ -1,3 +1,4 @@
+---
 - name: Install Filebeat on a server
   hosts: all
   become: yes
