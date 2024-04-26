@@ -1,5 +1,54 @@
----
-- name: Create directory
-  file:
-    path: ./python-projects-for-ansible
-    state: directory
+- name: Install Filebeat on a server
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Download the Filebeat tarball
+      get_url:
+        url: https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-8.13.0-linux-x86_64.tar.gz
+        dest: /tmp/filebeat.tar.gz
+
+    - name: Ensure filebeat directory exists
+      file:
+        path: /opt/filebeat
+        state: directory
+        mode: '0755'
+
+    - name: Extract Filebeat tarball
+      unarchive:
+        src: /tmp/filebeat.tar.gz
+        dest: /opt/filebeat
+        creates: /opt/filebeat/filebeat-8.13.0-linux-x86_64
+        extra_opts: [--strip-components=1]
+        remote_src: yes
+
+    - name: Set file permissions
+      file:
+        path: /opt/filebeat/filebeat
+        mode: '0755'
+
+    - name: Configure Filebeat
+      template:
+        src: templates/filebeat.yml.j2
+        dest: /opt/filebeat/filebeat.yml
+
+    - name: Configure System Module
+      template:
+        src: templates/system.yml.j2
+        dest: /opt/filebeat/modules.d/system.yml
+
+    - name: Enable and Configure apache Module
+      template:
+        src: templates/apache.yml.j2
+        dest: /opt/filebeat/modules.d/apache.yml
+
+    - name: Create Filebeat service
+      template:
+        src: templates/filebeat.service.j2
+        dest: /etc/systemd/system/filebeat.service
+
+    - name: Start and enable Filebeat service
+      systemd:
+        name: filebeat
+        state: started
+        enabled: yes
